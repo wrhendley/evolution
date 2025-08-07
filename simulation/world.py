@@ -20,7 +20,9 @@ class World:
     
     def update(self):
         for creature in self.creatures:
-            creature.move(random.choice([-1, 0, 1]), random.choice([-1, 0, 1]))
+            creature.age += 1
+            closest_food = creature.find_nearest_food(self.food)
+            creature.move(closest_food)
             creature.energy -= 0.1  # Energy consumption
             for f in self.food:
                 if creature.collides_with(f):
