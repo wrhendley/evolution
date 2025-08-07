@@ -20,10 +20,7 @@ class World:
     
     def update(self):
         for creature in self.creatures:
-            creature.age += 1
-            closest_food = creature.find_nearest_food(self.food)
-            creature.move(closest_food)
-            creature.energy -= 0.1  # Energy consumption
+            creature.update(self.food, (SCREEN_WIDTH, SCREEN_HEIGHT))
             for f in self.food:
                 if creature.collides_with(f):
                     creature.energy += 20
