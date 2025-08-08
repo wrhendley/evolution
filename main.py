@@ -16,6 +16,7 @@ def main():
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                world.log_file.close()
                 running = False
         
         world.update()

@@ -3,7 +3,7 @@ import random
 import pygame
 import math
 from simulation.utils import clamp, sign
-from config import MUTATION_RATE, ENERGY_COST_PER_UNIT
+from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX
 
 class Creature:
     def __init__(self, x, y, genes = None, brain = None):
@@ -56,8 +56,8 @@ class Creature:
     
     def generate_random_genes(self):
         return {
-            'vision': random.uniform(30, 80),
-            'speed': random.uniform(.5, 1.5)
+            'vision': random.uniform(VISION_MIN, VISION_MAX),
+            'speed': random.uniform(SPEED_MIN, SPEED_MAX)
         }
 
     def collides_with(self, food):
@@ -80,14 +80,14 @@ class Creature:
     def draw(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y, 10, 10))  # Draw as a blue square
         # Draw filled transparent gray vision circle
-        vision_surface = pygame.Surface((self.genes['vision']*2, self.genes['vision']*2), pygame.SRCALPHA)
-        pygame.draw.circle(
-            vision_surface,
-            (128, 128, 128, 90),  # RGBA: gray with alpha
-            (int(self.genes['vision']), int(self.genes['vision'])),
-            int(self.genes['vision'])
-        )
-        screen.blit(vision_surface, (int(self.x - self.genes['vision']), int(self.y - self.genes['vision'])))
+        # vision_surface = pygame.Surface((self.genes['vision']*2, self.genes['vision']*2), pygame.SRCALPHA)
+        # pygame.draw.circle(
+        #     vision_surface,
+        #     (128, 128, 128, 90),  # RGBA: gray with alpha
+        #     (int(self.genes['vision']), int(self.genes['vision'])),
+        #     int(self.genes['vision'])
+        # )
+        # screen.blit(vision_surface, (int(self.x - self.genes['vision']), int(self.y - self.genes['vision'])))
 
     def find_nearest_food(self, food_list, other_creatures):
         visible_food = [f for f in food_list if self.distance_to(f) <= self.genes['vision']]
