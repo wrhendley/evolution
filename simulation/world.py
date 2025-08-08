@@ -20,11 +20,14 @@ class World:
     
     def update(self):
         for creature in self.creatures:
-            creature.update(self.food, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            creature.update(self.food, (SCREEN_WIDTH, SCREEN_HEIGHT), self.creatures)
             for f in self.food:
                 if creature.collides_with(f):
                     creature.energy += 20
                     self.food.remove(f)
+                    
+                    if f.targeted_by:
+                        f.targeted_by.target = None
                     break
     
         # Remove dead creatures
