@@ -1,5 +1,5 @@
 import random
-import csv
+import matplotlib as plt
 from simulation.creature import Creature
 from simulation.food import Food
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD_SPAWN_INTERVAL
@@ -7,11 +7,10 @@ from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD
 class World:
     def __init__(self):
         self.frame_count = 0
+        self.frame = 0
+        self.history = []
         self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
         self.food = [self.spawn_food() for _ in range(FOOD_COUNT)]
-        self.log_file = open("gene_log.csv", "w", newline="")
-        self.log_writer = csv.writer(self.log_file)
-        self.log_writer.writerow(["Frame", "Creature_ID", "Vision", "Speed"])
 
     def spawn_creature(self):
         x = random.randint(0, SCREEN_WIDTH)
@@ -51,10 +50,19 @@ class World:
         if self.frame_count % FOOD_SPAWN_INTERVAL == 0 and len(self.food) < FOOD_COUNT:
             self.food.append(self.spawn_food())
 
-        if self.frame_count % 100 == 0:
-            for i, c in enumerate(self.creatures):
-                self.log_writer.writerow([self.frame_count, i, c.genes['vision'], c.genes['speed']])
-    
+        # Track average vision and speed every frame
+        if self.creatures:
+            avg_vision = sum(c.genes['vision'] for c in self.creatures) / len(self.creatures)
+            avg_speed = sum(c.genes['speed'] for c in self.creatures) / len(self.creatures)
+        else:
+            avg_vision = 0
+            avg_speed = 0
+        # Track total food and total population
+        total_food = len(self.food)
+        total_population = len(self.creatures)
+        self.history.append((self.frame_count, avg_vision, avg_speed, total_food, total_population))
+        self.frame += 1
+
     def draw(self, screen):
         for food in self.food:
             food.draw(screen)
