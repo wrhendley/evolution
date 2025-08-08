@@ -3,7 +3,7 @@ import random
 import pygame
 import math
 from simulation.utils import clamp, sign
-from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX
+from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX, HUNGER_MAX, HUNGER_THRESHOLD
 
 class Creature:
     def __init__(self, x, y, genes = None, brain = None):
@@ -12,9 +12,12 @@ class Creature:
         self.target = None
         self.energy = 100
         self.age = 0
-        
+        self.hunger = 0  # Hunger starts at 0 (not hungry)
+
         self.genes = genes if genes is not None else self.generate_random_genes()
-        
+        self.wander_direction = (0, 0)
+        self.wander_timer = 0
+
         self.brain = brain or {
             "input_weights": np.random.randn(5,6),
             "hidden_weights": np.random.randn(6,3)
@@ -23,26 +26,43 @@ class Creature:
     
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
+        self.hunger += 1  # Increase hunger every update
+        if self.hunger > HUNGER_MAX:
+            self.energy = 0  # Creature dies from starvation
+            return
         direction = self.think(food_list, creatures)
         self.move(direction, world_bounds)
     
     def think(self, food_list, creatures):
-        # If we already have a target and it's still valid
-        if self.target in food_list and self.target.targeted_by is self:
-            target = self.target
-        else:
-            # Find a new target        
-            target = self.find_nearest_food(food_list, creatures)
-            if target:
-                target.targeted_by = self
-                self.target = target
+        # If hungry, seek food
+        if self.hunger >= HUNGER_THRESHOLD:
+            if self.target in food_list and self.target.targeted_by is self:
+                target = self.target
             else:
-                self.target = None
-                return random.choice([(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1)])  # No target found, move randomly
-            
-        dx = target.x - self.x
-        dy = target.y - self.y
-        return (sign(dx), sign(dy))
+                target = self.find_nearest_food(food_list, creatures)
+                if target:
+                    target.targeted_by = self
+                    self.target = target
+                else:
+                    self.target = None
+                    # If hungry but no food, fallback to wandering
+                    return self._wander()
+            dx = target.x - self.x
+            dy = target.y - self.y
+            return (sign(dx), sign(dy))
+
+        # Not hungry: wander
+        return self._wander()
+
+    def _wander(self):
+        # If timer expired, pick a new direction and duration
+        if self.wander_timer <= 0:
+            # 20% chance to stand still, 80% to move in a direction
+            directions = [(0, 0)] * 1 + [(1, 0), (0, 1), (-1, 0), (0, -1)] * 2
+            self.wander_direction = random.choice(directions)
+            self.wander_timer = random.randint(30, 60)
+        self.wander_timer -= 1
+        return self.wander_direction
 
     def move(self, direction, world_bounds):
         dx, dy = direction
@@ -63,7 +83,10 @@ class Creature:
     def collides_with(self, food):
         dx = self.x - food.x
         dy = self.y - food.y
-        return dx * dx + dy * dy < 100
+        if dx * dx + dy * dy < 100:
+            self.hunger = 0  # Reset hunger when eating
+            return True
+        return False
     
     def mutate_genes(self):
         new_genes = self.genes.copy()
