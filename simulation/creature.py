@@ -13,14 +13,13 @@ class Creature:
         self.energy = 100
         self.age = 0
         
-        self.speed = genes['speed'] if genes else 2
-        self.vision = genes['vision'] if genes else 150
         self.genes = genes if genes is not None else self.generate_random_genes()
         
         self.brain = brain or {
             "input_weights": np.random.randn(5,6),
             "hidden_weights": np.random.randn(6,3)
         }
+        # print(f"New creature at ({self.x}, {self.y}) with genes: {self.genes}")
     
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
@@ -57,7 +56,7 @@ class Creature:
     
     def generate_random_genes(self):
         return {
-            'vision': random.uniform(3, 10),
+            'vision': random.uniform(30, 80),
             'speed': random.uniform(.5, 1.5)
         }
 
@@ -80,9 +79,18 @@ class Creature:
     
     def draw(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y, 10, 10))  # Draw as a blue square
-    
+        # Draw filled transparent gray vision circle
+        vision_surface = pygame.Surface((self.genes['vision']*2, self.genes['vision']*2), pygame.SRCALPHA)
+        pygame.draw.circle(
+            vision_surface,
+            (128, 128, 128, 90),  # RGBA: gray with alpha
+            (int(self.genes['vision']), int(self.genes['vision'])),
+            int(self.genes['vision'])
+        )
+        screen.blit(vision_surface, (int(self.x - self.genes['vision']), int(self.y - self.genes['vision'])))
+
     def find_nearest_food(self, food_list, other_creatures):
-        visible_food = [f for f in food_list if self.distance_to(f) <= self.vision]
+        visible_food = [f for f in food_list if self.distance_to(f) <= self.genes['vision']]
         
         # Get positions of food being targeted by other creatures
         targeted_food = {
