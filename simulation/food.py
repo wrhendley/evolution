@@ -6,6 +6,7 @@ class Food:
         self.y = y
         self.energy = energy
         self.radius = 4 # Size for drawing
+        self.targeted_by = None
     
     def draw(self, screen):
         pygame.draw.circle(screen, (255, 0, 0), (int(self.x), int(self.y)), self.radius)
