@@ -9,11 +9,12 @@ class Creature:
     def __init__(self, x, y, genes = None, brain = None):
         self.x = x
         self.y = y
+        self.target = None
         self.energy = 100
         self.age = 0
         
         self.speed = genes['speed'] if genes else 2
-        self.vision = genes['vision'] if genes else 100
+        self.vision = genes['vision'] if genes else 150
         self.genes = genes if genes is not None else self.generate_random_genes()
         
         self.brain = brain or {
@@ -21,18 +22,27 @@ class Creature:
             "hidden_weights": np.random.randn(6,3)
         }
     
-    def update(self, food_list, world_bounds):
+    def update(self, food_list, world_bounds, creatures):
         self.age += 1
-        direction = self.think(food_list)
+        direction = self.think(food_list, creatures)
         self.move(direction, world_bounds)
     
-    def think(self, food_list):
-        # Determine movement direction
-        nearest = self.find_nearest_food(food_list)
-        if nearest is None:
-            return random.choice([-1, 0, 1]), random.choice([-1, 0, 1])
-        dx = nearest.x - self.x
-        dy = nearest.y - self.y
+    def think(self, food_list, creatures):
+        # If we already have a target and it's still valid
+        if self.target in food_list and self.target.targeted_by is self:
+            target = self.target
+        else:
+            # Find a new target        
+            target = self.find_nearest_food(food_list, creatures)
+            if target:
+                target.targeted_by = self
+                self.target = target
+            else:
+                self.target = None
+                return random.choice([(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1)])  # No target found, move randomly
+            
+        dx = target.x - self.x
+        dy = target.y - self.y
         return (sign(dx), sign(dy))
 
     def move(self, direction, world_bounds):
@@ -41,6 +51,9 @@ class Creature:
         self.energy -= distance * ENERGY_COST_PER_UNIT
         self.x = clamp(self.x + dx, 0, world_bounds[0])
         self.y = clamp(self.y + dy, 0, world_bounds[1])
+    
+    def distance_to(self, other):
+        return math.hypot(other.x - self.x, other.y - self.y)
     
     def generate_random_genes(self):
         return {
@@ -68,18 +81,25 @@ class Creature:
     def draw(self, screen):
         pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y, 10, 10))  # Draw as a blue square
     
-    def find_nearest_food(self, food_list):
-        closest = None
-        min_dist = float('inf')
-        vision_squared = self.vision ** 2  # avoid using sqrt for performance
+    def find_nearest_food(self, food_list, other_creatures):
+        visible_food = [f for f in food_list if self.distance_to(f) <= self.vision]
+        
+        # Get positions of food being targeted by other creatures
+        targeted_food = {
+            (c.target.x, c.target.y) for c in other_creatures
+            if c.target is not self and c.target is not None
+        }
+        
+        # Filter out food that's already assigned
+        untargeted_food = [
+            f for f in visible_food
+            if (f.x, f.y) not in targeted_food
+        ]
+        
+        # Use untargeted food if available, otherwise fall back to any visible food
+        candidate_food = untargeted_food if untargeted_food else visible_food
+        
+        if not candidate_food:
+            return None
 
-        for food in food_list:
-            dx = self.x - food.x
-            dy = self.y - food.y
-            distance_squared = dx * dx + dy * dy
-
-            if distance_squared <= vision_squared and distance_squared < min_dist:
-                min_dist = distance_squared
-                closest = food
-
-        return closest
+        return min(candidate_food, key=lambda f: self.distance_to(f))
