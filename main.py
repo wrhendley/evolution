@@ -33,8 +33,9 @@ def plot_data(world):
     frames = [entry[0] for entry in world.history]
     vision = [entry[1] for entry in world.history]
     speed = [entry[2] for entry in world.history]
-    total_food = [entry[3] for entry in world.history]
-    total_population = [entry[4] for entry in world.history]
+    metabolism = [entry[3] for entry in world.history]
+    total_food = [entry[4] for entry in world.history]
+    total_population = [entry[5] for entry in world.history]
 
     fig, ax1 = plt.subplots()
     color1 = 'tab:blue'
@@ -49,19 +50,27 @@ def plot_data(world):
     ax2.plot(frames, speed, color=color2, label='Average Speed')
     ax2.tick_params(axis='y', labelcolor=color2)
 
-    # Plot total food and population on a third axis
+    # Plot metabolism on a third axis
     ax3 = ax1.twinx()
     ax3.spines['right'].set_position(('outward', 60))
-    color3 = 'tab:green'
-    color4 = 'tab:red'
-    ax3.plot(frames, total_food, color=color3, label='Total Food', linestyle='dashed')
-    ax3.plot(frames, total_population, color=color4, label='Total Population', linestyle='dotted')
-    ax3.set_ylabel('Count', color='black')
-    ax3.tick_params(axis='y', labelcolor='black')
+    color3 = 'tab:purple'
+    ax3.set_ylabel('Average Metabolism', color=color3)
+    ax3.plot(frames, metabolism, color=color3, label='Average Metabolism', linestyle='solid')
+    ax3.tick_params(axis='y', labelcolor=color3)
+
+    # Plot total food and population on a fourth axis
+    ax4 = ax1.twinx()
+    ax4.spines['right'].set_position(('outward', 120))
+    color4 = 'tab:green'
+    color5 = 'tab:red'
+    ax4.plot(frames, total_food, color=color4, label='Total Food', linestyle='dashed')
+    ax4.plot(frames, total_population, color=color5, label='Total Population', linestyle='dotted')
+    ax4.set_ylabel('Count', color='black')
+    ax4.tick_params(axis='y', labelcolor='black')
 
     # Combine legends
     lines, labels = [], []
-    for ax in [ax1, ax2, ax3]:
+    for ax in [ax1, ax2, ax3, ax4]:
         line, label = ax.get_legend_handles_labels()
         lines += line
         labels += label

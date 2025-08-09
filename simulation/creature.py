@@ -67,7 +67,7 @@ class Creature:
     def move(self, direction, world_bounds):
         dx, dy = direction
         distance = math.sqrt(dx ** 2 + dy ** 2)
-        self.energy -= distance * ENERGY_COST_PER_UNIT
+        self.energy -= distance * self.genes.get('metabolism', 0.2)  # Use metabolism gene for energy cost
         self.x = clamp(self.x + dx, 0, world_bounds[0])
         self.y = clamp(self.y + dy, 0, world_bounds[1])
     
@@ -77,7 +77,8 @@ class Creature:
     def generate_random_genes(self):
         return {
             'vision': random.uniform(VISION_MIN, VISION_MAX),
-            'speed': random.uniform(SPEED_MIN, SPEED_MAX)
+            'speed': random.uniform(SPEED_MIN, SPEED_MAX),
+            'metabolism': random.uniform(0.05, 0.5)
         }
 
     def collides_with(self, food):
@@ -92,9 +93,15 @@ class Creature:
         new_genes = self.genes.copy()
         for key in new_genes:
             if random.random() < MUTATION_RATE:
-                mutation = random.uniform(-0.5, 0.5)
+                if key == 'metabolism':
+                    mutation = random.uniform(-0.05, 0.05)
+                else:
+                    mutation = random.uniform(-0.5, 0.5)
                 new_genes[key] += mutation
-                new_genes[key] = max(0.1, new_genes[key]) # Prevent negative values
+                if key == 'metabolism':
+                    new_genes[key] = max(0.01, new_genes[key])  # Prevent negative values
+                else:
+                    new_genes[key] = max(0.1, new_genes[key])  # Prevent negative values
         return new_genes
     
     def reproduce(self):
