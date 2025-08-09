@@ -13,8 +13,9 @@ class World:
         self.food = [self.spawn_food() for _ in range(FOOD_COUNT)]
 
     def spawn_creature(self):
-        x = random.randint(0, SCREEN_WIDTH)
-        y = random.randint(0, SCREEN_HEIGHT)
+        # Clamp so creature is always fully visible (10x10 rect)
+        x = random.randint(0, SCREEN_WIDTH - 10)
+        y = random.randint(0, SCREEN_HEIGHT - 10)
         return Creature(x, y)
     
     def spawn_food(self):

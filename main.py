@@ -16,7 +16,7 @@ def main():
         screen.fill((0, 255, 0))
         
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or world.creatures == []:
                 # world.log_file.close()
                 running = False
         
@@ -24,7 +24,7 @@ def main():
         world.draw(screen)
         
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(480)
         
     plot_data(world)
     pygame.quit()

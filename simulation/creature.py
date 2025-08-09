@@ -68,8 +68,9 @@ class Creature:
         dx, dy = direction
         distance = math.sqrt(dx ** 2 + dy ** 2)
         self.energy -= distance * self.genes.get('metabolism', 0.2)  # Use metabolism gene for energy cost
-        self.x = clamp(self.x + dx, 0, world_bounds[0])
-        self.y = clamp(self.y + dy, 0, world_bounds[1])
+        # Ensure the creature stays fully on screen (10x10 rect)
+        self.x = clamp(self.x + dx, 0, world_bounds[0] - 10)
+        self.y = clamp(self.y + dy, 0, world_bounds[1] - 10)
     
     def distance_to(self, other):
         return math.hypot(other.x - self.x, other.y - self.y)
@@ -93,15 +94,13 @@ class Creature:
         new_genes = self.genes.copy()
         for key in new_genes:
             if random.random() < MUTATION_RATE:
+                # Multiplicative mutation: scale by 0.9 to 1.1
+                new_genes[key] *= random.uniform(0.9, 1.1)
+                # Prevent negative or zero values
                 if key == 'metabolism':
-                    mutation = random.uniform(-0.05, 0.05)
+                    new_genes[key] = max(0.01, new_genes[key])
                 else:
-                    mutation = random.uniform(-0.5, 0.5)
-                new_genes[key] += mutation
-                if key == 'metabolism':
-                    new_genes[key] = max(0.01, new_genes[key])  # Prevent negative values
-                else:
-                    new_genes[key] = max(0.1, new_genes[key])  # Prevent negative values
+                    new_genes[key] = max(0.1, new_genes[key])
         return new_genes
     
     def reproduce(self):
