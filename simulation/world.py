@@ -2,7 +2,7 @@ import random
 import matplotlib as plt
 from simulation.creature import Creature
 from simulation.food import Food
-from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD_SPAWN_INTERVAL
+from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD_SPAWN_INTERVAL, LOG_INTERVAL
 
 class World:
     def __init__(self):
@@ -63,7 +63,8 @@ class World:
         # Track total food and total population
         total_food = len(self.food)
         total_population = len(self.creatures)
-        self.history.append((self.frame_count, avg_vision, avg_speed, avg_metabolism, total_food, total_population))
+        if self.frame_count % LOG_INTERVAL == 0:
+            self.history.append((self.frame_count, avg_vision, avg_speed, avg_metabolism, total_food, total_population))
         self.frame += 1
 
     def draw(self, screen):

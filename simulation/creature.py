@@ -15,6 +15,11 @@ class Creature:
         self.hunger = 0  # Hunger starts at 0 (not hungry)
 
         self.genes = genes if genes is not None else self.generate_random_genes()
+        self.genes['color'] = self.genes.get('color', {
+            'R': 128,
+            'G': 128,
+            'B': 128
+        })
         self.wander_direction = (0, 0)
         self.wander_timer = 0
 
@@ -22,7 +27,6 @@ class Creature:
             "input_weights": np.random.randn(5,6),
             "hidden_weights": np.random.randn(6,3)
         }
-        # print(f"New creature at ({self.x}, {self.y}) with genes: {self.genes}")
     
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
@@ -79,7 +83,7 @@ class Creature:
         return {
             'vision': random.uniform(VISION_MIN, VISION_MAX),
             'speed': random.uniform(SPEED_MIN, SPEED_MAX),
-            'metabolism': random.uniform(0.05, 0.5)
+            'metabolism': random.uniform(0.05, 0.5),
         }
 
     def collides_with(self, food):
@@ -92,22 +96,37 @@ class Creature:
     
     def mutate_genes(self):
         new_genes = self.genes.copy()
-        for key in new_genes:
-            if random.random() < MUTATION_RATE:
-                # Multiplicative mutation: scale by 0.9 to 1.1
-                new_genes[key] *= random.uniform(0.9, 1.1)
-                # Prevent negative or zero values
-                if key == 'metabolism':
-                    new_genes[key] = max(0.01, new_genes[key])
-                else:
-                    new_genes[key] = max(0.1, new_genes[key])
+        for key in list(new_genes.keys()):
+            if key == 'color':
+                # Mutate each color channel independently
+                new_color = new_genes['color'].copy()
+                for channel in ['R', 'G', 'B']:
+                    if random.random() < MUTATION_RATE * 4:
+                        # Mutate by up to +/- 30, clamp to 0-255
+                        delta = random.randint(-30, 30)
+                        new_color[channel] = max(0, min(255, new_color[channel] + delta))
+                new_genes['color'] = new_color
+            else:
+                if random.random() < MUTATION_RATE:
+                    # Multiplicative mutation: scale by 0.9 to 1.1
+                    new_genes[key] *= random.uniform(0.9, 1.1)
+                    # Prevent negative or zero values
+                    if key == 'metabolism':
+                        new_genes[key] = max(0.01, new_genes[key])
+                    else:
+                        new_genes[key] = max(0.1, new_genes[key])
         return new_genes
     
     def reproduce(self):
         return Creature(self.x, self.y, genes=self.mutate_genes())
     
     def draw(self, screen):
-        pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y, 10, 10))  # Draw as a blue square
+        color = self.genes.get('color')
+        pygame.draw.rect(
+            screen,
+            (color['R'], color['G'], color['B']),
+            (self.x, self.y, 10, 10)
+        )
         # Draw filled transparent gray vision circle
         # vision_surface = pygame.Surface((self.genes['vision']*2, self.genes['vision']*2), pygame.SRCALPHA)
         # pygame.draw.circle(
