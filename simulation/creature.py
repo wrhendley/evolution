@@ -5,6 +5,11 @@ import math
 from simulation.utils import clamp, sign
 from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX, HUNGER_MAX, HUNGER_THRESHOLD
 
+# Load and scale the creature sprite once (as a class variable)
+CREATURE_SPRITE = pygame.transform.scale(
+    pygame.image.load('assets/creature.png'), (40, 40)
+)
+
 class Creature:
     def __init__(self, x, y, genes = None, brain = None):
         self.x = x
@@ -101,9 +106,9 @@ class Creature:
                 # Mutate each color channel independently
                 new_color = new_genes['color'].copy()
                 for channel in ['R', 'G', 'B']:
-                    if random.random() < MUTATION_RATE * 4:
-                        # Mutate by up to +/- 30, clamp to 0-255
-                        delta = random.randint(-30, 30)
+                    if random.random() < MUTATION_RATE * 2:
+                        # Mutate by up to +/- 20, clamp to 0-255
+                        delta = random.randint(-20, 20)
                         new_color[channel] = max(0, min(255, new_color[channel] + delta))
                 new_genes['color'] = new_color
             else:
@@ -121,13 +126,15 @@ class Creature:
         return Creature(self.x, self.y, genes=self.mutate_genes())
     
     def draw(self, screen):
-        color = self.genes.get('color')
-        pygame.draw.rect(
-            screen,
-            (color['R'], color['G'], color['B']),
-            (self.x, self.y, 10, 10)
-        )
-        # Draw filled transparent gray vision circle
+        # Optionally tint the sprite to the creature's color gene
+        color = self.genes.get('color', {'R':128, 'G':128, 'B':128})
+        sprite = CREATURE_SPRITE.copy()
+        # Tinting: fill with color, using BLEND_RGBA_MULT for simple tint
+        tint = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
+        tint.fill((color['R'], color['G'], color['B'], 255))
+        sprite.blit(tint, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        screen.blit(sprite, (self.x, self.y))
+        # Draw filled transparent gray vision circle (optional, can uncomment)
         # vision_surface = pygame.Surface((self.genes['vision']*2, self.genes['vision']*2), pygame.SRCALPHA)
         # pygame.draw.circle(
         #     vision_surface,

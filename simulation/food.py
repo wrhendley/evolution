@@ -2,6 +2,9 @@ from config import SCREEN_WIDTH, SCREEN_HEIGHT
 import pygame
 
 class Food:
+    FOOD_SPRITE = pygame.transform.scale(
+        pygame.image.load('assets/food.png'), (20, 20)
+    )
     def __init__(self, x, y, energy=20):
         self.radius = 4 # Size for drawing
         # Clamp so food is always fully visible
@@ -11,4 +14,4 @@ class Food:
         self.targeted_by = None
     
     def draw(self, screen):
-        pygame.draw.circle(screen, (255, 0, 0), (int(self.x), int(self.y)), self.radius)
+        screen.blit(self.FOOD_SPRITE, (int(self.x), int(self.y)))
