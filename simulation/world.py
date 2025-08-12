@@ -1,9 +1,11 @@
 import random
+import pygame
 import matplotlib as plt
 from simulation.creature import Creature
 from simulation.food import Food
 from simulation.bush import Bush
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD_SPAWN_INTERVAL, LOG_INTERVAL
+from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
 
 class World:
     def __init__(self):
@@ -79,6 +81,8 @@ class World:
         self.frame += 1
 
     def draw(self, screen):
+        # Draw lake first (blue ellipse)
+        pygame.draw.ellipse(screen, (0, 100, 200), (LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT))
         for bush in self.bushes:
             bush.draw(screen)
         for creature in self.creatures:

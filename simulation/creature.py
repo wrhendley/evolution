@@ -4,6 +4,7 @@ import pygame
 import math
 from simulation.utils import clamp, sign
 from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX, HUNGER_MAX, HUNGER_THRESHOLD
+from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
 
 # Load and scale the creature sprite once (as a class variable)
 CREATURE_SPRITE = pygame.transform.scale(
@@ -12,6 +13,11 @@ CREATURE_SPRITE = pygame.transform.scale(
 
 class Creature:
     def __init__(self, x, y, genes = None, brain = None):
+        # Prevent spawning in the lake
+        lake_rect = pygame.Rect(LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT)
+        while lake_rect.collidepoint(x, y):
+            x = random.randint(0, 800 - 40)
+            y = random.randint(0, 600 - 40)
         self.x = x
         self.y = y
         self.target = None
@@ -74,12 +80,18 @@ class Creature:
         return self.wander_direction
 
     def move(self, direction, world_bounds):
+        from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
         dx, dy = direction
         distance = math.sqrt(dx ** 2 + dy ** 2)
         self.energy -= distance * self.genes.get('metabolism', 0.2)  # Use metabolism gene for energy cost
-        # Ensure the creature stays fully on screen (10x10 rect)
-        self.x = clamp(self.x + dx, 0, world_bounds[0] - 10)
-        self.y = clamp(self.y + dy, 0, world_bounds[1] - 10)
+        # Try to move, but block if would enter the lake
+        new_x = clamp(self.x + dx, 0, world_bounds[0] - 40)
+        new_y = clamp(self.y + dy, 0, world_bounds[1] - 40)
+        lake_rect = pygame.Rect(LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT)
+        creature_rect = pygame.Rect(new_x, new_y, 40, 40)
+        if not creature_rect.colliderect(lake_rect):
+            self.x = new_x
+            self.y = new_y
     
     def distance_to(self, other):
         return math.hypot(other.x - self.x, other.y - self.y)
