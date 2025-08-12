@@ -21,8 +21,8 @@ class Bush:
         # Only grow food if less than max_food on bush
         if len(self.food) < max_food:
             # Place food at bush center (or random offset for variety)
-            fx = self.x + 16 + random.randint(-8, 8)
-            fy = self.y + 16 + random.randint(-8, 8)
+            fx = self.x + 24 + random.randint(-16, 16)
+            fy = self.y + 24 + random.randint(-16, 16)
             self.food.append(FoodClass(fx, fy))
 
     def remove_food(self, food_obj):

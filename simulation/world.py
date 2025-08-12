@@ -41,7 +41,7 @@ class World:
             for bush in self.bushes:
                 for f in list(bush.food):
                     if creature.collides_with(f):
-                        creature.energy += f.energy
+                        # Eating only resets hunger; no energy gain
                         bush.remove_food(f)
                         if f.targeted_by:
                             f.targeted_by.target = None
@@ -51,11 +51,19 @@ class World:
         self.creatures = [c for c in self.creatures if c.energy > 0]
 
         # Reproduce if energy is sufficient
+        from config import HUNGER_THRESHOLD, THIRST_THRESHOLD, REPRODUCTION_COOLDOWN
         new_creatures = []
         for c in self.creatures:
-            if c.energy > 150:
+            if (
+                c.energy > 90 and
+                getattr(c, 'hunger', 0) < HUNGER_THRESHOLD and
+                getattr(c, 'thirst', 0) < THIRST_THRESHOLD and
+                c.age > 600 and
+                getattr(c, 'reproduction_cooldown', 0) == 0
+            ):
                 c.energy /= 2
                 child = c.reproduce()
+                c.reproduction_cooldown = REPRODUCTION_COOLDOWN
                 new_creatures.append(child)
         self.creatures.extend(new_creatures)
 

@@ -31,8 +31,12 @@ def main():
         world.update()
         world.draw(screen)
 
-        # Draw info box for selected creature
+        # Highlight selected creature
         if selected_creature in world.creatures:
+            pygame.draw.rect(
+                screen, (255, 255, 0),
+                (selected_creature.x, selected_creature.y, 40, 40), 3
+            )
             info_lines = [
                 f"Energy: {selected_creature.energy:.1f}",
                 f"Age: {selected_creature.age}",

@@ -4,7 +4,7 @@ import pygame
 import math
 from simulation.utils import clamp, sign
 from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX, HUNGER_MAX, HUNGER_THRESHOLD
-from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT, THIRST_MAX, THIRST_THRESHOLD
+from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT, THIRST_MAX, THIRST_THRESHOLD, REST_ENERGY_GAIN
 
 # Load and scale the creature sprite once (as a class variable)
 CREATURE_SPRITE = pygame.transform.scale(
@@ -34,6 +34,7 @@ class Creature:
         })
         self.wander_direction = (0, 0)
         self.wander_timer = 0
+        self.reproduction_cooldown = 0
 
         self.brain = brain or {
             "input_weights": np.random.randn(5,6),
@@ -44,10 +45,15 @@ class Creature:
         self.age += 1
         self.hunger += 1  # Increase hunger every update
         self.thirst += 1  # Increase thirst every update
+        if self.reproduction_cooldown > 0:
+            self.reproduction_cooldown -= 1
         if self.hunger > HUNGER_MAX or self.thirst > THIRST_MAX:
             self.energy = 0  # Creature dies from starvation or dehydration
             return
         direction = self.think(food_list, creatures)
+        # If standing still, regain energy (resting)
+        if direction == (0, 0):
+            self.energy = min(100, self.energy + REST_ENERGY_GAIN)
         self.move(direction, world_bounds)
         self.try_drink()
     
@@ -56,12 +62,36 @@ class Creature:
         hunger_urgency = self.hunger / HUNGER_MAX
         thirst_urgency = self.thirst / THIRST_MAX
         if thirst_urgency > hunger_urgency and self.thirst >= THIRST_THRESHOLD:
-            # Seek lake
-            lake_cx = LAKE_X + LAKE_WIDTH // 2
-            lake_cy = LAKE_Y + LAKE_HEIGHT // 2
-            dx = lake_cx - (self.x + 20)
-            dy = lake_cy - (self.y + 20)
-            return (sign(dx), sign(dy))
+            # Only seek lake if it is within vision range (ellipse edge or center)
+            cx = self.x + 20
+            cy = self.y + 20
+            lx = LAKE_X + LAKE_WIDTH / 2
+            ly = LAKE_Y + LAKE_HEIGHT / 2
+            rx = LAKE_WIDTH / 2
+            ry = LAKE_HEIGHT / 2
+            # Distance from creature center to lake edge (ellipse)
+            # We'll use the closest point: project to ellipse center
+            dx_ = (cx - lx) / rx
+            dy_ = (cy - ly) / ry
+            dist_to_lake = math.sqrt(dx_**2 + dy_**2)
+            # If inside lake, just wander (should be drinking)
+            if dist_to_lake <= 1:
+                return self._wander()
+            # If within vision, seek lake
+            # Approximate: if the distance from creature center to lake edge is less than vision
+            # Use Euclidean distance to ellipse center minus ellipse radius in that direction
+            # True distance to edge is (sqrt(dx_^2 + dy_^2) - 1) * average_radius
+            # We'll use bounding circle for simplicity
+            avg_radius = (rx + ry) / 2
+            euclid_dist = math.hypot(cx - lx, cy - ly)
+            if euclid_dist - avg_radius <= self.genes['vision']:
+                lake_cx = LAKE_X + LAKE_WIDTH // 2
+                lake_cy = LAKE_Y + LAKE_HEIGHT // 2
+                dx = lake_cx - (self.x + 20)
+                dy = lake_cy - (self.y + 20)
+                return (sign(dx), sign(dy))
+            # Otherwise, wander until lake is seen
+            return self._wander()
         elif hunger_urgency >= thirst_urgency and self.hunger >= HUNGER_THRESHOLD:
             # Seek food
             if self.target in food_list and self.target.targeted_by is self:
@@ -148,6 +178,7 @@ class Creature:
         dy = self.y - food.y
         if dx * dx + dy * dy < 100:
             self.hunger = 0  # Reset hunger when eating
+            # No longer restore energy here
             return True
         return False
     
