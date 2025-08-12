@@ -13,7 +13,16 @@ class World:
         self.frame = 0
         self.history = []
         self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
-        self.bushes = [self.spawn_bush() for _ in range(5)]  # Spawn 5 bushes
+        self.bushes = []
+        bush_count = 5
+        attempts = 0
+        max_attempts = 1000
+        while len(self.bushes) < bush_count and attempts < max_attempts:
+            new_bush = self.spawn_bush()
+            new_rect = pygame.Rect(new_bush.x, new_bush.y, 64, 64)
+            if all(not new_rect.colliderect(pygame.Rect(b.x, b.y, 64, 64)) for b in self.bushes):
+                self.bushes.append(new_bush)
+            attempts += 1
         self.food = []
         for bush in self.bushes:
             for _ in range(random.randint(1, 3)):

@@ -52,8 +52,8 @@ class Creature:
     
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
-        self.hunger += 1  # Increase hunger every update
-        self.thirst += 1  # Increase thirst every update
+        self.hunger += .5  # Increase hunger every update
+        self.thirst += .5  # Increase thirst every update
         if self.reproduction_cooldown > 0:
             self.reproduction_cooldown -= 1
         if self.hunger > HUNGER_MAX or self.thirst > THIRST_MAX:

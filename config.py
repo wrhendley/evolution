@@ -1,4 +1,4 @@
-SIMULATION_SPEED = 1  # Speed multiplier for the game loop
+SIMULATION_SPEED = 10  # Speed multiplier for the game loop
 REPRODUCTION_COOLDOWN = 300  # Frames between allowed reproductions
 REST_ENERGY_GAIN = 1  # Energy gained per frame while resting (not moving)
 SCREEN_WIDTH = 800
@@ -6,7 +6,7 @@ SCREEN_HEIGHT = 600
 CREATURE_COUNT = 15
 FOOD_COUNT = 100
 MUTATION_RATE = 0.2
-ENERGY_COST_PER_UNIT = .05
+ENERGY_COST_PER_UNIT = .02
 FOOD_SPAWN_INTERVAL = 120
 VISION_MIN = 150
 VISION_MAX = 250
@@ -16,7 +16,7 @@ HUNGER_MAX = 400
 HUNGER_THRESHOLD = 200
 THIRST_MAX = 400
 THIRST_THRESHOLD = 200
-LOG_INTERVAL = 60  # How often to log history (in frames)
+LOG_INTERVAL = 600  # How often to log history (in frames)
 
 # Lake settings (centered)
 LAKE_WIDTH = 300
