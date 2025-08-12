@@ -13,9 +13,17 @@ CREATURE_SPRITE = pygame.transform.scale(
 
 class Creature:
     def __init__(self, x, y, genes = None, brain = None):
-        # Prevent spawning in the lake
-        lake_rect = pygame.Rect(LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT)
-        while lake_rect.collidepoint(x, y):
+        # Prevent spawning with center in the lake ellipse
+        while True:
+            cx = x + 20
+            cy = y + 20
+            lx = LAKE_X + LAKE_WIDTH / 2
+            ly = LAKE_Y + LAKE_HEIGHT / 2
+            rx = LAKE_WIDTH / 2
+            ry = LAKE_HEIGHT / 2
+            in_lake = ((cx - lx) / rx) ** 2 + ((cy - ly) / ry) ** 2 <= 1
+            if not in_lake:
+                break
             x = random.randint(0, 800 - 40)
             y = random.randint(0, 600 - 40)
         self.x = x
@@ -35,6 +43,7 @@ class Creature:
         self.wander_direction = (0, 0)
         self.wander_timer = 0
         self.reproduction_cooldown = 0
+        self.resting = False
 
         self.brain = brain or {
             "input_weights": np.random.randn(5,6),
@@ -58,6 +67,20 @@ class Creature:
         self.try_drink()
     
     def think(self, food_list, creatures):
+        # If currently resting, continue to rest unless energy is full or hunger/thirst crosses threshold
+        if self.resting:
+            # If hunger or thirst crosses threshold, immediately stop resting to address need
+            if self.hunger >= HUNGER_THRESHOLD or self.thirst >= THIRST_THRESHOLD:
+                self.resting = False
+            # If energy is full, stop resting
+            elif self.energy >= 100:
+                self.resting = False
+            else:
+                return (0, 0)
+        # Only start resting if energy is low and no urgent hunger/thirst
+        if not self.resting and self.energy < 30 and self.hunger < HUNGER_THRESHOLD and self.thirst < THIRST_THRESHOLD:
+            self.resting = True
+            return (0, 0)
         # Prioritize whichever need is closer to max (hunger or thirst)
         hunger_urgency = self.hunger / HUNGER_MAX
         thirst_urgency = self.thirst / THIRST_MAX
@@ -78,10 +101,6 @@ class Creature:
             if dist_to_lake <= 1:
                 return self._wander()
             # If within vision, seek lake
-            # Approximate: if the distance from creature center to lake edge is less than vision
-            # Use Euclidean distance to ellipse center minus ellipse radius in that direction
-            # True distance to edge is (sqrt(dx_^2 + dy_^2) - 1) * average_radius
-            # We'll use bounding circle for simplicity
             avg_radius = (rx + ry) / 2
             euclid_dist = math.hypot(cx - lx, cy - ly)
             if euclid_dist - avg_radius <= self.genes['vision']:
@@ -225,7 +244,10 @@ class Creature:
         #     (int(self.genes['vision']), int(self.genes['vision'])),
         #     int(self.genes['vision'])
         # )
-        # screen.blit(vision_surface, (int(self.x - self.genes['vision']), int(self.y - self.genes['vision'])))
+        # # Center the vision circle on the center of the sprite
+        # center_x = int(self.x + 20 - self.genes['vision'])
+        # center_y = int(self.y + 20 - self.genes['vision'])
+        # screen.blit(vision_surface, (center_x, center_y))
 
     def find_nearest_food(self, food_list, other_creatures):
         visible_food = [f for f in food_list if self.distance_to(f) <= self.genes['vision']]

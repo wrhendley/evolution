@@ -21,10 +21,20 @@ class World:
                 self.food.extend(bush.food)
 
     def spawn_creature(self):
-        # Clamp so creature is always fully visible (10x10 rect)
-        x = random.randint(0, SCREEN_WIDTH - 10)
-        y = random.randint(0, SCREEN_HEIGHT - 10)
-        return Creature(x, y)
+        # Clamp so creature is always fully visible (40x40 sprite)
+        while True:
+            x = random.randint(0, SCREEN_WIDTH - 40)
+            y = random.randint(0, SCREEN_HEIGHT - 40)
+            # Check if center would be in the lake ellipse
+            cx = x + 20
+            cy = y + 20
+            lx = LAKE_X + LAKE_WIDTH / 2
+            ly = LAKE_Y + LAKE_HEIGHT / 2
+            rx = LAKE_WIDTH / 2
+            ry = LAKE_HEIGHT / 2
+            in_lake = ((cx - lx) / rx) ** 2 + ((cy - ly) / ry) ** 2 <= 1
+            if not in_lake:
+                return Creature(x, y)
     
     def spawn_bush(self):
         return Bush()

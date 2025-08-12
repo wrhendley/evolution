@@ -1,6 +1,6 @@
 import pygame
 import matplotlib.pyplot as plt
-from config import SCREEN_WIDTH, SCREEN_HEIGHT
+from config import SCREEN_WIDTH, SCREEN_HEIGHT, SIMULATION_SPEED
 from simulation.world import World
 
 def main():
@@ -27,6 +27,9 @@ def main():
                     if creature.x <= mx <= creature.x + 40 and creature.y <= my <= creature.y + 40:
                         selected_creature = creature
                         break
+                else:
+                    # If no creature was clicked, clear selection
+                    selected_creature = None
 
         world.update()
         world.draw(screen)
@@ -58,8 +61,8 @@ def main():
             selected_creature = None
 
         pygame.display.flip()
-        clock.tick(60)
-        
+        clock.tick(SIMULATION_SPEED * 60)
+
     plot_data(world)
     pygame.quit()
 
