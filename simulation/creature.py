@@ -12,7 +12,7 @@ CREATURE_SPRITE = pygame.transform.scale(
 )
 
 class Creature:
-    def __init__(self, x, y, genes = None, brain = None):
+    def __init__(self, x, y, genes = None, brain = None, sex=None):
         # Prevent spawning with center in the lake ellipse
         while True:
             cx = x + 20
@@ -29,7 +29,7 @@ class Creature:
         self.x = x
         self.y = y
         self.target = None
-        self.energy = 100
+        self.energy = 150
         self.age = 0
         self.hunger = 0  # Hunger starts at 0 (not hungry)
         self.thirst = 0  # Thirst starts at 0 (not thirsty)
@@ -40,6 +40,7 @@ class Creature:
             'G': 128,
             'B': 128
         })
+        self.sex = sex if sex is not None else random.choice(["male", "female"])
         self.wander_direction = (0, 0)
         self.wander_timer = 0
         self.reproduction_cooldown = 0
@@ -49,6 +50,24 @@ class Creature:
             "input_weights": np.random.randn(5,6),
             "hidden_weights": np.random.randn(6,3)
         }
+
+    @staticmethod
+    def create_child(mother, father):
+        # Average genes
+        child_genes = {}
+        for key in mother.genes:
+            if key == 'color':
+                child_genes['color'] = {
+                    'R': int((mother.genes['color']['R'] + father.genes['color']['R']) / 2),
+                    'G': int((mother.genes['color']['G'] + father.genes['color']['G']) / 2),
+                    'B': int((mother.genes['color']['B'] + father.genes['color']['B']) / 2)
+                }
+            else:
+                child_genes[key] = (mother.genes[key] + father.genes[key]) / 2
+        # Create child, then mutate its genes
+        child = Creature(mother.x, mother.y, genes=child_genes)
+        child.genes = child.mutate_genes()
+        return child
     
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
@@ -56,15 +75,23 @@ class Creature:
         self.thirst += .5  # Increase thirst every update
         if self.reproduction_cooldown > 0:
             self.reproduction_cooldown -= 1
-        if self.hunger > HUNGER_MAX or self.thirst > THIRST_MAX:
-            self.energy = 0  # Creature dies from starvation or dehydration
+        if self.hunger > HUNGER_MAX:
+            self.energy = 0
+            self.death_cause = 'starvation'
+            return
+        if self.thirst > THIRST_MAX:
+            self.energy = 0
+            self.death_cause = 'dehydration'
             return
         direction = self.think(food_list, creatures)
         # If standing still, regain energy (resting)
         if direction == (0, 0):
-            self.energy = min(100, self.energy + REST_ENERGY_GAIN)
+            self.energy = min(150, self.energy + REST_ENERGY_GAIN)
         self.move(direction, world_bounds)
         self.try_drink()
+        # Check for exhaustion (energy depleted)
+        if self.energy <= 0 and not hasattr(self, 'death_cause'):
+            self.death_cause = 'exhaustion'
     
     def think(self, food_list, creatures):
         # If currently resting, continue to rest unless energy is full or hunger/thirst crosses threshold
@@ -189,7 +216,7 @@ class Creature:
         return {
             'vision': random.uniform(VISION_MIN, VISION_MAX),
             'speed': random.uniform(SPEED_MIN, SPEED_MAX),
-            'metabolism': random.uniform(0.05, 0.5),
+            'metabolism': random.uniform(0.02, 0.2),
         }
 
     def collides_with(self, food):
@@ -219,7 +246,7 @@ class Creature:
                     new_genes[key] *= random.uniform(0.9, 1.1)
                     # Prevent negative or zero values
                     if key == 'metabolism':
-                        new_genes[key] = max(0.01, new_genes[key])
+                        new_genes[key] = max(0.001, new_genes[key])
                     else:
                         new_genes[key] = max(0.1, new_genes[key])
         return new_genes

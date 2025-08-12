@@ -12,6 +12,7 @@ class World:
         self.frame_count = 0
         self.frame = 0
         self.history = []
+        self.death_causes = {'starvation': 0, 'dehydration': 0, 'exhaustion': 0}
         self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
         self.bushes = []
         bush_count = 5
@@ -66,24 +67,41 @@ class World:
                             f.targeted_by.target = None
                         break
 
-        # Remove dead creatures
-        self.creatures = [c for c in self.creatures if c.energy > 0]
-
-        # Reproduce if energy is sufficient
-        from config import HUNGER_THRESHOLD, THIRST_THRESHOLD, REPRODUCTION_COOLDOWN
-        new_creatures = []
+        # Remove dead creatures and count causes
+        survivors = []
         for c in self.creatures:
-            if (
-                c.energy > 90 and
-                getattr(c, 'hunger', 0) < HUNGER_THRESHOLD and
-                getattr(c, 'thirst', 0) < THIRST_THRESHOLD and
-                c.age > 600 and
-                getattr(c, 'reproduction_cooldown', 0) == 0
-            ):
-                c.energy /= 2
-                child = c.reproduce()
-                c.reproduction_cooldown = REPRODUCTION_COOLDOWN
-                new_creatures.append(child)
+            if c.energy > 0:
+                survivors.append(c)
+            else:
+                cause = getattr(c, 'death_cause', None)
+                if cause in self.death_causes:
+                    self.death_causes[cause] += 1
+        self.creatures = survivors
+
+        # Reproduce if energy is sufficient and a male and female intersect
+        from config import HUNGER_THRESHOLD, THIRST_THRESHOLD, REPRODUCTION_COOLDOWN
+        eligible_males = [c for c in self.creatures if getattr(c, 'sex', None) == "male" and c.energy > 80 and c.hunger < HUNGER_THRESHOLD and c.thirst < THIRST_THRESHOLD and c.age > 600 and c.reproduction_cooldown == 0]
+        eligible_females = [c for c in self.creatures if getattr(c, 'sex', None) == "female" and c.energy > 80 and c.hunger < HUNGER_THRESHOLD and c.thirst < THIRST_THRESHOLD and c.age > 600 and c.reproduction_cooldown == 0]
+        used_males = set()
+        used_females = set()
+        new_creatures = []
+        for female in eligible_females:
+            female_rect = pygame.Rect(female.x, female.y, 40, 40)
+            for male in eligible_males:
+                if male in used_males:
+                    continue
+                male_rect = pygame.Rect(male.x, male.y, 40, 40)
+                if female_rect.colliderect(male_rect):
+                    # Both parents pay energy cost and get cooldown
+                    female.energy /= 2
+                    male.energy /= 2
+                    female.reproduction_cooldown = REPRODUCTION_COOLDOWN
+                    male.reproduction_cooldown = REPRODUCTION_COOLDOWN
+                    child = Creature.create_child(female, male)
+                    new_creatures.append(child)
+                    used_males.add(male)
+                    used_females.add(female)
+                    break
         self.creatures.extend(new_creatures)
 
         # Grow food on bushes at a fixed interval

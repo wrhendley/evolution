@@ -41,6 +41,7 @@ def main():
                 (selected_creature.x, selected_creature.y, 40, 40), 3
             )
             info_lines = [
+                f"Sex: {getattr(selected_creature, 'sex', '?')}",
                 f"Energy: {selected_creature.energy:.1f}",
                 f"Age: {selected_creature.age}",
                 f"Hunger: {selected_creature.hunger}",
@@ -117,6 +118,11 @@ def plot_data(world):
     fig.tight_layout()
     plt.grid(True)
     plt.show()
+
+    # Print death cause totals
+    print("\nDeath Cause Totals:")
+    for cause, count in world.death_causes.items():
+        print(f"{cause.title()}: {count}")
 
 if __name__ == "__main__":
     main()
