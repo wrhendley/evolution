@@ -63,8 +63,8 @@ def plot_data(world):
     ax4.spines['right'].set_position(('outward', 120))
     color4 = 'tab:green'
     color5 = 'tab:red'
-    ax4.plot(frames, total_food, color=color4, label='Total Food', linestyle='dashed')
-    ax4.plot(frames, total_population, color=color5, label='Total Population', linestyle='dotted')
+    ax4.plot(frames, total_food, color=color4, label='Total Food')
+    ax4.plot(frames, total_population, color=color5, label='Total Population')
     ax4.set_ylabel('Count', color='black')
     ax4.tick_params(axis='y', labelcolor='black')
 

@@ -2,6 +2,7 @@ import random
 import matplotlib as plt
 from simulation.creature import Creature
 from simulation.food import Food
+from simulation.bush import Bush
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD_SPAWN_INTERVAL, LOG_INTERVAL
 
 class World:
@@ -10,7 +11,12 @@ class World:
         self.frame = 0
         self.history = []
         self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
-        self.food = [self.spawn_food() for _ in range(FOOD_COUNT)]
+        self.bushes = [self.spawn_bush() for _ in range(5)]  # Spawn 5 bushes
+        self.food = []
+        for bush in self.bushes:
+            for _ in range(random.randint(1, 3)):
+                bush.grow_food(Food)
+                self.food.extend(bush.food)
 
     def spawn_creature(self):
         # Clamp so creature is always fully visible (10x10 rect)
@@ -18,22 +24,26 @@ class World:
         y = random.randint(0, SCREEN_HEIGHT - 10)
         return Creature(x, y)
     
-    def spawn_food(self):
-        x = random.randint(0, SCREEN_WIDTH)
-        y = random.randint(0, SCREEN_HEIGHT)
-        return Food(x, y)
+    def spawn_bush(self):
+        return Bush()
     
     def update(self):
         self.frame_count += 1
+        # Update food list from all bushes
+        self.food = []
+        for bush in self.bushes:
+            self.food.extend(bush.food)
+
         for creature in self.creatures:
             creature.update(self.food, (SCREEN_WIDTH, SCREEN_HEIGHT), self.creatures)
-            for f in self.food:
-                if creature.collides_with(f):
-                    creature.energy += 20
-                    self.food.remove(f)
-                    if f.targeted_by:
-                        f.targeted_by.target = None
-                    break
+            for bush in self.bushes:
+                for f in list(bush.food):
+                    if creature.collides_with(f):
+                        creature.energy += 20
+                        bush.remove_food(f)
+                        if f.targeted_by:
+                            f.targeted_by.target = None
+                        break
 
         # Remove dead creatures
         self.creatures = [c for c in self.creatures if c.energy > 0]
@@ -47,9 +57,10 @@ class World:
                 new_creatures.append(child)
         self.creatures.extend(new_creatures)
 
-        # Spawn one new food at a fixed interval
-        if self.frame_count % FOOD_SPAWN_INTERVAL == 0 and len(self.food) < FOOD_COUNT:
-            self.food.append(self.spawn_food())
+        # Grow food on bushes at a fixed interval
+        if self.frame_count % FOOD_SPAWN_INTERVAL == 0:
+            for bush in self.bushes:
+                bush.grow_food(Food)
 
         # Track average vision, speed, and metabolism every frame
         if self.creatures:
@@ -68,7 +79,7 @@ class World:
         self.frame += 1
 
     def draw(self, screen):
-        for food in self.food:
-            food.draw(screen)
+        for bush in self.bushes:
+            bush.draw(screen)
         for creature in self.creatures:
             creature.draw(screen)

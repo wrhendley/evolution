@@ -11,4 +11,4 @@ SPEED_MIN = 0.5
 SPEED_MAX = 1.5
 HUNGER_THRESHOLD = 60
 HUNGER_MAX = 200
-LOG_INTERVAL = 10  # How often to log history (in frames)
+LOG_INTERVAL = 60  # How often to log history (in frames)
