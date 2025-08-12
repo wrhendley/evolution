@@ -5,7 +5,7 @@ class Food:
     FOOD_SPRITE = pygame.transform.scale(
         pygame.image.load('assets/food.png'), (20, 20)
     )
-    def __init__(self, x, y, energy=20):
+    def __init__(self, x, y, energy=200):
         self.radius = 4 # Size for drawing
         # Clamp so food is always fully visible
         self.x = min(max(x, self.radius), SCREEN_WIDTH - self.radius)

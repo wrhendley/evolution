@@ -4,7 +4,7 @@ import pygame
 import math
 from simulation.utils import clamp, sign
 from config import MUTATION_RATE, ENERGY_COST_PER_UNIT, VISION_MIN, VISION_MAX, SPEED_MIN, SPEED_MAX, HUNGER_MAX, HUNGER_THRESHOLD
-from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
+from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT, THIRST_MAX, THIRST_THRESHOLD
 
 # Load and scale the creature sprite once (as a class variable)
 CREATURE_SPRITE = pygame.transform.scale(
@@ -24,6 +24,7 @@ class Creature:
         self.energy = 100
         self.age = 0
         self.hunger = 0  # Hunger starts at 0 (not hungry)
+        self.thirst = 0  # Thirst starts at 0 (not thirsty)
 
         self.genes = genes if genes is not None else self.generate_random_genes()
         self.genes['color'] = self.genes.get('color', {
@@ -42,15 +43,27 @@ class Creature:
     def update(self, food_list, world_bounds, creatures):
         self.age += 1
         self.hunger += 1  # Increase hunger every update
-        if self.hunger > HUNGER_MAX:
-            self.energy = 0  # Creature dies from starvation
+        self.thirst += 1  # Increase thirst every update
+        if self.hunger > HUNGER_MAX or self.thirst > THIRST_MAX:
+            self.energy = 0  # Creature dies from starvation or dehydration
             return
         direction = self.think(food_list, creatures)
         self.move(direction, world_bounds)
+        self.try_drink()
     
     def think(self, food_list, creatures):
-        # If hungry, seek food
-        if self.hunger >= HUNGER_THRESHOLD:
+        # Prioritize whichever need is closer to max (hunger or thirst)
+        hunger_urgency = self.hunger / HUNGER_MAX
+        thirst_urgency = self.thirst / THIRST_MAX
+        if thirst_urgency > hunger_urgency and self.thirst >= THIRST_THRESHOLD:
+            # Seek lake
+            lake_cx = LAKE_X + LAKE_WIDTH // 2
+            lake_cy = LAKE_Y + LAKE_HEIGHT // 2
+            dx = lake_cx - (self.x + 20)
+            dy = lake_cy - (self.y + 20)
+            return (sign(dx), sign(dy))
+        elif hunger_urgency >= thirst_urgency and self.hunger >= HUNGER_THRESHOLD:
+            # Seek food
             if self.target in food_list and self.target.targeted_by is self:
                 target = self.target
             else:
@@ -65,9 +78,31 @@ class Creature:
             dx = target.x - self.x
             dy = target.y - self.y
             return (sign(dx), sign(dy))
-
-        # Not hungry: wander
+        # Not hungry or thirsty: wander
         return self._wander()
+
+    def try_drink(self):
+        # If any part of the creature is in the lake (ellipse), reset thirst
+        if self._in_lake():
+            self.thirst = 0
+
+    def _in_lake(self):
+        # Check if the center or any corner of the creature is inside the lake ellipse
+        points = [
+            (self.x + 20, self.y + 20),  # center
+            (self.x, self.y),            # top-left
+            (self.x + 39, self.y),       # top-right
+            (self.x, self.y + 39),       # bottom-left
+            (self.x + 39, self.y + 39)   # bottom-right
+        ]
+        lx = LAKE_X + LAKE_WIDTH / 2
+        ly = LAKE_Y + LAKE_HEIGHT / 2
+        rx = LAKE_WIDTH / 2
+        ry = LAKE_HEIGHT / 2
+        for px, py in points:
+            if ((px - lx) / rx) ** 2 + ((py - ly) / ry) ** 2 <= 1:
+                return True
+        return False
 
     def _wander(self):
         # If timer expired, pick a new direction and duration
@@ -80,16 +115,21 @@ class Creature:
         return self.wander_direction
 
     def move(self, direction, world_bounds):
-        from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
         dx, dy = direction
         distance = math.sqrt(dx ** 2 + dy ** 2)
         self.energy -= distance * self.genes.get('metabolism', 0.2)  # Use metabolism gene for energy cost
-        # Try to move, but block if would enter the lake
+        # Try to move, but block if would enter the lake (ellipse)
         new_x = clamp(self.x + dx, 0, world_bounds[0] - 40)
         new_y = clamp(self.y + dy, 0, world_bounds[1] - 40)
-        lake_rect = pygame.Rect(LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT)
-        creature_rect = pygame.Rect(new_x, new_y, 40, 40)
-        if not creature_rect.colliderect(lake_rect):
+        # Check if center would be in the lake ellipse
+        cx = new_x + 20
+        cy = new_y + 20
+        lx = LAKE_X + LAKE_WIDTH / 2
+        ly = LAKE_Y + LAKE_HEIGHT / 2
+        rx = LAKE_WIDTH / 2
+        ry = LAKE_HEIGHT / 2
+        in_lake = ((cx - lx) / rx) ** 2 + ((cy - ly) / ry) ** 2 <= 1
+        if not in_lake:
             self.x = new_x
             self.y = new_y
     

@@ -41,7 +41,7 @@ class World:
             for bush in self.bushes:
                 for f in list(bush.food):
                     if creature.collides_with(f):
-                        creature.energy += 20
+                        creature.energy += f.energy
                         bush.remove_food(f)
                         if f.targeted_by:
                             f.targeted_by.target = None
