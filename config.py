@@ -1,13 +1,14 @@
 SIMULATION_SPEED = 12  # Speed multiplier for the game loop
 REPRODUCTION_COOLDOWN = 300  # Frames between allowed reproductions
 REST_ENERGY_GAIN = 1  # Energy gained per frame while resting (not moving)
+ENERGY_MAX = 150  # Maximum energy a creature can have
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-CREATURE_COUNT = 15
+CREATURE_COUNT = 20
 FOOD_COUNT = 100
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.15
 ENERGY_COST_PER_UNIT = .001
-FOOD_SPAWN_INTERVAL = 120
+FOOD_SPAWN_INTERVAL = 140
 VISION_MIN = 170
 VISION_MAX = 250
 SPEED_MIN = 0.5

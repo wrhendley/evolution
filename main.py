@@ -2,12 +2,18 @@ import pygame
 import matplotlib.pyplot as plt
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, SIMULATION_SPEED
 from simulation.world import World
+import os, json
 
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
-    world = World()
+    survivor_path = 'best_survivor.json'
+    best_survivors_data = None
+    if os.path.exists(survivor_path):
+        with open(survivor_path, 'r') as f:
+            best_survivors_data = json.load(f)
+    world = World(best_survivors_data=best_survivors_data)
     pygame.display.set_caption("Evolution Simulation")
 
     
@@ -123,6 +129,24 @@ def plot_data(world):
     print("\nDeath Cause Totals:")
     for cause, count in world.death_causes.items():
         print(f"{cause.title()}: {count}")
+
+    # Save top 2 survivors
+    if world.history and world.creatures == []:
+        if hasattr(world, 'last_population') and world.last_population:
+            sorted_survivors = sorted(world.last_population, key=lambda c: getattr(c, 'age', 0), reverse=True)
+            top2 = sorted_survivors[:2]
+            data = []
+            for best in top2:
+                data.append({
+                    'genes': best.genes,
+                    'brain': {
+                        'input_weights': best.brain['input_weights'].tolist(),
+                        'hidden_weights': best.brain['hidden_weights'].tolist()
+                    },
+                    'sex': best.sex
+                })
+            with open('best_survivor.json', 'w') as f:
+                json.dump(data, f)
 
 if __name__ == "__main__":
     main()

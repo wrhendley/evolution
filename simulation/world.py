@@ -1,6 +1,7 @@
 import random
 import pygame
 import matplotlib as plt
+import copy, numpy as np
 from simulation.creature import Creature
 from simulation.food import Food
 from simulation.bush import Bush
@@ -8,21 +9,39 @@ from config import SCREEN_WIDTH, SCREEN_HEIGHT, CREATURE_COUNT, FOOD_COUNT, FOOD
 from config import LAKE_X, LAKE_Y, LAKE_WIDTH, LAKE_HEIGHT
 
 class World:
-    def __init__(self):
+    def __init__(self, best_survivors_data=None):
         self.frame_count = 0
         self.frame = 0
         self.history = []
         self.death_causes = {'starvation': 0, 'dehydration': 0, 'exhaustion': 0}
-        self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
+        self.last_population = []
+        if best_survivors_data and isinstance(best_survivors_data, list) and len(best_survivors_data) > 0:
+            self.creatures = []
+            for _ in range(CREATURE_COUNT):
+                parent_data = random.choice(best_survivors_data)
+                genes = copy.deepcopy(parent_data['genes'])
+                for k, v in genes.items():
+                    if isinstance(v, dict):
+                        for ck in v:
+                            genes[k][ck] = max(0, min(255, int(v[ck] + random.randint(-20, 20))))
+                    elif isinstance(v, (int, float)):
+                        genes[k] = v * random.uniform(0.9, 1.1)
+                sex = random.choice(['male','female'])
+                self.creatures.append(Creature(random.randint(0, SCREEN_WIDTH-40), random.randint(0, SCREEN_HEIGHT-40), genes=genes, sex=sex))
+        else:
+            self.creatures = [self.spawn_creature() for _ in range(CREATURE_COUNT)]
+        self.last_population = []
         self.bushes = []
-        bush_count = 5
+        bush_count = 4
         attempts = 0
         max_attempts = 1000
+        bush_width = 64
+        bush_height = 64
         while len(self.bushes) < bush_count and attempts < max_attempts:
-            new_bush = self.spawn_bush()
-            new_rect = pygame.Rect(new_bush.x, new_bush.y, 64, 64)
-            if all(not new_rect.colliderect(pygame.Rect(b.x, b.y, 64, 64)) for b in self.bushes):
-                self.bushes.append(new_bush)
+            bush = self.spawn_bush()
+            bush_rect = pygame.Rect(bush.x, bush.y, bush_width, bush_height)
+            if all(not bush_rect.colliderect(pygame.Rect(b.x, b.y, bush_width, bush_height)) for b in self.bushes):
+                self.bushes.append(bush)
             attempts += 1
         self.food = []
         for bush in self.bushes:
@@ -58,6 +77,8 @@ class World:
 
         for creature in self.creatures:
             creature.update(self.food, (SCREEN_WIDTH, SCREEN_HEIGHT), self.creatures)
+            # Track last population for survivor saving
+            self.last_population = self.creatures.copy()
             for bush in self.bushes:
                 for f in list(bush.food):
                     if creature.collides_with(f):
